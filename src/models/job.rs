@@ -8,6 +8,7 @@ use chrono::{DateTime, Utc};
 #[sqlx(type_name = "TEXT")]
 pub enum JobStatus {
     Pending,
+    Claimed,
     Downloading,
     Processing,
     Completed,
@@ -19,6 +20,7 @@ impl std::fmt::Display for JobStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             JobStatus::Pending => write!(f, "Pending"),
+            JobStatus::Claimed => write!(f, "Claimed"),
             JobStatus::Downloading => write!(f, "Downloading"),
             JobStatus::Processing => write!(f, "Processing"),
             JobStatus::Completed => write!(f, "Completed"),

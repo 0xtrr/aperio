@@ -76,7 +76,7 @@ impl ProcessService {
 
                 Ok(output_path)
             }
-            Ok(Err(error)) => Err(AppError::Processing(format!("Fffmpeg command failed: {error}"))),
+            Ok(Err(error)) => Err(AppError::Processing(format!("FFmpeg command failed: {error}"))),
             Err(_) => Err(AppError::Timeout(format!(
                 "Processing timed out after {} seconds",
                 self.config.processing_timeout.as_secs()

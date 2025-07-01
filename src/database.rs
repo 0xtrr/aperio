@@ -10,19 +10,19 @@ pub async fn create_database_pool(database_url: &str) -> AppResult<SqlitePool> {
     // Ensure the database directory exists
     if let Some(parent) = Path::new(db_path).parent() {
         tracing::info!("Creating database directory: {:?}", parent);
-        std::fs::create_dir_all(parent)
+        tokio::fs::create_dir_all(parent).await
             .map_err(|e| AppError::Internal(format!("Failed to create database directory: {e}")))?;
         
         // Check directory permissions
-        let metadata = std::fs::metadata(parent)
+        let metadata = tokio::fs::metadata(parent).await
             .map_err(|e| AppError::Internal(format!("Failed to read directory metadata: {e}")))?;
         tracing::info!("Directory permissions: {:o}", metadata.permissions().mode() & 0o777);
         
         // Try to create a test file
         let test_file = parent.join("test_write");
-        match std::fs::write(&test_file, "test") {
+        match tokio::fs::write(&test_file, "test").await {
             Ok(_) => {
-                std::fs::remove_file(&test_file).ok();
+                tokio::fs::remove_file(&test_file).await.ok();
                 tracing::info!("Directory is writable");
             }
             Err(e) => {
@@ -70,5 +70,27 @@ pub async fn run_migrations(pool: &SqlitePool) -> AppResult<()> {
         .await
         .map_err(|e| AppError::Internal(format!("Failed to run migrations: {e}")))?;
 
+    // Apply SQLite optimizations after migrations complete
+    tracing::info!("Applying SQLite performance optimizations");
+    
+    // Enable WAL mode for better concurrency
+    sqlx::query("PRAGMA journal_mode = WAL")
+        .execute(pool)
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to set journal mode: {e}")))?;
+    
+    // Set synchronous mode for better performance
+    sqlx::query("PRAGMA synchronous = NORMAL")
+        .execute(pool)
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to set synchronous mode: {e}")))?;
+    
+    // Increase cache size for better performance
+    sqlx::query("PRAGMA cache_size = 1000")
+        .execute(pool)
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to set cache size: {e}")))?;
+
+    tracing::info!("SQLite optimizations applied successfully");
     Ok(())
 }

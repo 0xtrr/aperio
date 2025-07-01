@@ -54,6 +54,7 @@ impl JobRepository {
             let status_str: String = row.get("status");
             let status = match status_str.as_str() {
                 "Pending" => JobStatus::Pending,
+                "Claimed" => JobStatus::Claimed,
                 "Downloading" => JobStatus::Downloading,
                 "Processing" => JobStatus::Processing,
                 "Completed" => JobStatus::Completed,
@@ -432,8 +433,11 @@ impl JobRepository {
     /// Atomically claim a pending job for processing (prevents race conditions)
     pub async fn try_claim_pending_job(&self, job_id: &str) -> AppResult<bool> {
         let result = sqlx::query(
-            "UPDATE jobs SET status = 'Claimed' WHERE id = ? AND status = 'Pending'"
+            "UPDATE jobs SET status = ? WHERE id = ? AND status = ?"
         )
+        .bind(JobStatus::Claimed.to_string())
+        .bind(job_id)
+        .bind(JobStatus::Pending.to_string())
         .bind(job_id)
         .execute(&self.pool)
         .await
@@ -445,9 +449,11 @@ impl JobRepository {
     /// Unclaim a job (set back to pending) if processing failed to start
     pub async fn unclaim_job(&self, job_id: &str) -> AppResult<()> {
         sqlx::query(
-            "UPDATE jobs SET status = 'Pending' WHERE id = ? AND status = 'Claimed'"
+            "UPDATE jobs SET status = ? WHERE id = ? AND status = ?"
         )
+        .bind(JobStatus::Pending.to_string())
         .bind(job_id)
+        .bind(JobStatus::Claimed.to_string())
         .execute(&self.pool)
         .await
         .map_err(|e| AppError::Internal(format!("Failed to unclaim job: {e}")))?;
@@ -548,5 +554,61 @@ impl JobRepository {
         } else {
             Ok(None)
         }
+    }
+
+    /// Delete jobs older than specified days and return their IDs for file cleanup
+    pub async fn cleanup_old_jobs(&self, retention_days: u32) -> AppResult<Vec<String>> {
+        let cutoff_date = chrono::Utc::now() - chrono::Duration::days(retention_days as i64);
+        
+        // First, get the IDs of jobs to be deleted
+        let job_ids: Vec<String> = sqlx::query_scalar(
+            "SELECT id FROM jobs WHERE updated_at < ? AND status IN ('Completed', 'Failed', 'Cancelled')"
+        )
+        .bind(cutoff_date)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to get old job IDs: {e}")))?;
+
+        if job_ids.is_empty() {
+            return Ok(vec![]);
+        }
+
+        // Delete the jobs
+        let deleted_count = sqlx::query(
+            "DELETE FROM jobs WHERE updated_at < ? AND status IN ('Completed', 'Failed', 'Cancelled')"
+        )
+        .bind(cutoff_date)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to delete old jobs: {e}")))?
+        .rows_affected();
+
+        tracing::info!("Deleted {} old jobs (older than {} days)", deleted_count, retention_days);
+        Ok(job_ids)
+    }
+
+    /// Get count of jobs by status for cleanup statistics
+    pub async fn get_cleanup_stats(&self) -> AppResult<(i64, i64, i64)> {
+        let stats = sqlx::query_as::<_, (String, i64)>(
+            "SELECT status, COUNT(*) as count FROM jobs WHERE status IN ('Completed', 'Failed', 'Cancelled') GROUP BY status"
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to get cleanup stats: {e}")))?;
+
+        let mut completed = 0i64;
+        let mut failed = 0i64;
+        let mut cancelled = 0i64;
+
+        for (status, count) in stats {
+            match status.as_str() {
+                "Completed" => completed = count,
+                "Failed" => failed = count,
+                "Cancelled" => cancelled = count,
+                _ => {}
+            }
+        }
+
+        Ok((completed, failed, cancelled))
     }
 }

@@ -9,6 +9,7 @@ pub struct Config {
     pub storage: StorageConfig,
     pub security: SecurityConfig,
     pub queue: QueueConfig,
+    pub retention: RetentionConfig,
 }
 
 #[derive(Clone)]
@@ -64,6 +65,13 @@ pub struct SecurityConfig {
     pub max_url_length: usize,
     #[allow(dead_code)]
     pub blocked_ips: Vec<String>,
+}
+
+#[derive(Clone)]
+pub struct RetentionConfig {
+    pub enabled: bool,
+    pub retention_days: u32,
+    pub cleanup_interval_hours: u64,
 }
 
 impl Default for Config {
@@ -126,6 +134,11 @@ impl Default for Config {
             },
             queue: QueueConfig {
                 max_concurrent_jobs: parse_env_number("APERIO_MAX_CONCURRENT_JOBS", 2) as usize,
+            },
+            retention: RetentionConfig {
+                enabled: parse_env_var("APERIO_RETENTION_ENABLED", "true").to_lowercase() == "true",
+                retention_days: parse_env_number("APERIO_RETENTION_DAYS", 30) as u32,
+                cleanup_interval_hours: parse_env_number("APERIO_CLEANUP_INTERVAL_HOURS", 24),
             },
         }
     }

@@ -6,6 +6,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use std::collections::HashSet;
 
+#[derive(Clone)]
 pub struct CleanupService {
     working_dir: PathBuf,
     // Track files currently being processed to prevent cleanup races

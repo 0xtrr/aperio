@@ -10,7 +10,7 @@ mod monitoring;
 use crate::api::routes::{configure_routes, AppState};
 use crate::api::monitoring::{configure_monitoring_routes, MonitoringState};
 use crate::config::load_config;
-use crate::services::{ProcessService, DownloadService, JobRepository, CleanupService, SecurityValidator, ConnectionPoolManager, JobQueue};
+use crate::services::{ProcessService, DownloadService, JobRepository, CleanupService, SecurityValidator, ConnectionPoolManager, JobQueue, RetentionService};
 use crate::database::{create_database_pool, run_migrations};
 use crate::middleware::{SecurityHeaders, Cors, RequestTracking};
 use crate::monitoring::HealthChecker;
@@ -34,13 +34,13 @@ async fn main() -> std::io::Result<()> {
     // Create working directory
     let working_dir_path = std::env::var("APERIO_WORKING_DIR").unwrap_or_else(|_| "/app/working".to_string());
     let working_dir = PathBuf::from(&working_dir_path);
-    std::fs::create_dir_all(&working_dir).expect("Failed to create working directory");
+    tokio::fs::create_dir_all(&working_dir).await.expect("Failed to create working directory");
     info!("Working directory initialized: {}", working_dir_path);
 
     // Create storage directory
     let storage_dir_path = std::env::var("APERIO_STORAGE_PATH").unwrap_or_else(|_| "/app/storage".to_string());
     let storage_dir = PathBuf::from(&storage_dir_path);
-    std::fs::create_dir_all(&storage_dir).expect("Failed to create storage directory");
+    tokio::fs::create_dir_all(&storage_dir).await.expect("Failed to create storage directory");
     info!("Storage directory initialized: {}", storage_dir_path);
 
     // Initialize database
@@ -68,7 +68,7 @@ async fn main() -> std::io::Result<()> {
     info!("Initializing services");
     let download_service = DownloadService::new(config.download.clone(), working_dir.clone(), &config.security, pool_manager.clone());
     let process_service = ProcessService::new(config.processing.clone(), working_dir.clone(), pool_manager.clone());
-    let cleanup_service = CleanupService::new(working_dir.clone());
+    let cleanup_service = Arc::new(CleanupService::new(working_dir.clone()));
     let job_repository = Arc::new(JobRepository::new(pool.clone()));
     let security_validator = SecurityValidator::new(
         config.download.allowed_domains.clone(),
@@ -90,7 +90,7 @@ async fn main() -> std::io::Result<()> {
     let app_state = Arc::new(AppState {
         download_service,
         process_service,
-        cleanup_service,
+        cleanup_service: (*cleanup_service).clone(),
         job_repository: (*job_repository).clone(),
         security_validator,
         job_queue: job_queue.clone(),
@@ -131,6 +131,24 @@ async fn main() -> std::io::Result<()> {
 
     // Start job queue worker
     job_queue.start_worker(app_state.clone()).await;
+
+    // Start retention service if enabled
+    if config.retention.enabled {
+        info!("Starting retention service with {} day retention", config.retention.retention_days);
+        let retention_service = RetentionService::new(
+            job_repository.clone(),
+            cleanup_service.clone(),
+            config.retention.retention_days,
+            config.retention.cleanup_interval_hours,
+        );
+        
+        let retention_service_clone = retention_service.clone();
+        tokio::spawn(async move {
+            retention_service_clone.start_background_cleanup().await;
+        });
+    } else {
+        info!("Retention service disabled");
+    }
 
     let monitoring_state = Arc::new(MonitoringState {
         health_checker,

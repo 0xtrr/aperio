@@ -229,11 +229,18 @@ impl HealthChecker {
             .unwrap()
             .as_secs();
 
-        let working_dir_files = std::fs::read_dir(&self.working_dir)
-            .map(|entries| entries.count())
-            .unwrap_or(0);
+        let working_dir_files = match tokio::fs::read_dir(&self.working_dir).await {
+            Ok(mut entries) => {
+                let mut count = 0;
+                while entries.next_entry().await.unwrap_or(None).is_some() {
+                    count += 1;
+                }
+                count
+            }
+            Err(_) => 0
+        };
 
-        let storage_size = self.calculate_directory_size(&self.storage_dir);
+        let storage_size = self.calculate_directory_size(&self.storage_dir).await;
 
         SystemMetrics {
             uptime_seconds: uptime,
@@ -252,11 +259,11 @@ impl HealthChecker {
         }
     }
 
-    fn calculate_directory_size(&self, dir: &std::path::Path) -> f64 {
+    async fn calculate_directory_size(&self, dir: &std::path::Path) -> f64 {
         let mut size = 0u64;
-        if let Ok(entries) = std::fs::read_dir(dir) {
-            for entry in entries.flatten() {
-                if let Ok(metadata) = entry.metadata() {
+        if let Ok(mut entries) = tokio::fs::read_dir(dir).await {
+            while let Ok(Some(entry)) = entries.next_entry().await {
+                if let Ok(metadata) = entry.metadata().await {
                     if metadata.is_file() {
                         size += metadata.len();
                     }

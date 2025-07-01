@@ -3,6 +3,7 @@ use crate::models::job::{Job, JobStatus};
 use crate::services::process::ProcessService;
 use crate::services::{DownloadService, JobRepository, CleanupService, SecurityValidator, JobQueue, JobPriority};
 use crate::services::retry::{retry_with_backoff, RetryConfig, is_retryable_error};
+use crate::{counter_inc, gauge_set, histogram_record};
 use actix_web::{get, post, delete, web, Responder};
 use actix_web::http::header::{ContentDisposition, DispositionType};
 use serde::{Deserialize, Serialize};
@@ -69,6 +70,8 @@ async fn start_job(
     data: web::Data<Arc<AppState>>,
     request: web::Json<DownloadRequest>,
 ) -> AppResult<impl Responder> {
+    let start_time = std::time::Instant::now();
+    counter_inc!("aperio_job_requests_total");
     info!("Starting new job for URL: {}", request.url);
     
     // Enhanced input validation
@@ -106,10 +109,16 @@ async fn start_job(
     // Add job to queue
     if let Err(e) = data.job_queue.enqueue(job.clone(), priority).await {
         error!("Failed to enqueue job {}: {}", job_id, e);
+        counter_inc!("aperio_job_errors_total", "error_type" => "queue_failed");
         return Err(AppError::Internal(format!("Failed to queue job: {e}")));
     }
     
     info!("Enqueued job {} for processing", job_id);
+    
+    // Record metrics
+    let duration_ms = start_time.elapsed().as_millis() as f64;
+    histogram_record!("aperio_request_duration_ms", duration_ms, "endpoint" => "process");
+    counter_inc!("aperio_jobs_created_total", "priority" => request.priority.as_deref().unwrap_or("normal"));
 
     Ok(web::Json(JobResponse::from(&job)))
 }
@@ -361,6 +370,9 @@ async fn list_jobs(
 
 #[instrument(skip(app_state), fields(job_id = %job_id))]
 pub async fn process_job(job_id: &str, app_state: Arc<AppState>) {
+    let job_start_time = std::time::Instant::now();
+    counter_inc!("aperio_jobs_processing_total");
+    gauge_set!("aperio_jobs_active", 1.0);
     info!("Starting processing for job: {}", job_id);
     
     let cleanup_on_exit = {
@@ -382,10 +394,14 @@ pub async fn process_job(job_id: &str, app_state: Arc<AppState>) {
         Ok(Some(job)) => job,
         Ok(None) => {
             error!("Job not found: {}", job_id);
+            counter_inc!("aperio_job_errors_total", "error_type" => "job_not_found");
+            gauge_set!("aperio_jobs_active", 0.0);
             return;
         }
         Err(e) => {
             error!("Failed to get job {} after retries: {}", job_id, e);
+            counter_inc!("aperio_job_errors_total", "error_type" => "database_error");
+            gauge_set!("aperio_jobs_active", 0.0);
             return;
         }
     };
@@ -410,6 +426,8 @@ pub async fn process_job(job_id: &str, app_state: Arc<AppState>) {
             error!("Download failed for job {}: {}", job_id, e);
             job.set_error(e.to_string());
             let _ = update_job_with_retry(&job, &app_state).await;
+            counter_inc!("aperio_jobs_failed_total", "phase" => "download");
+            gauge_set!("aperio_jobs_active", 0.0);
             cleanup_on_exit().await;
             return;
         }
@@ -433,6 +451,8 @@ pub async fn process_job(job_id: &str, app_state: Arc<AppState>) {
             error!("Processing failed for job {}: {}", job_id, e);
             job.set_error(e.to_string());
             let _ = update_job_with_retry(&job, &app_state).await;
+            counter_inc!("aperio_jobs_failed_total", "phase" => "processing");
+            gauge_set!("aperio_jobs_active", 0.0);
             cleanup_on_exit().await;
             return;
         }
@@ -447,6 +467,15 @@ pub async fn process_job(job_id: &str, app_state: Arc<AppState>) {
     } else {
         info!("Job {} completed successfully in {:?}", job_id, start_time.elapsed());
     }
+
+    // Record completion metrics
+    let total_duration_ms = job_start_time.elapsed().as_millis() as f64;
+    counter_inc!("aperio_jobs_completed_total");
+    histogram_record!("aperio_job_duration_ms", total_duration_ms);
+    if let Some(processing_time) = job.get_processing_time() {
+        histogram_record!("aperio_processing_duration_ms", processing_time.as_millis() as f64);
+    }
+    gauge_set!("aperio_jobs_active", 0.0);
 
     // Clean up temporary download files (keep processed files)
     if let Some(downloaded_path) = job.get_downloaded_path() {

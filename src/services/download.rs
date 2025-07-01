@@ -86,10 +86,10 @@ impl DownloadService {
                 // Note: This would require passing CleanupService reference, which we'll add later
 
                 // Validate the downloaded file size
-                if let Ok(metadata) = std::fs::metadata(&downloaded_file) {
+                if let Ok(metadata) = tokio::fs::metadata(&downloaded_file).await {
                     if metadata.len() > self.security_validator.get_max_file_size() {
                         // Remove the oversized file
-                        let _ = std::fs::remove_file(&downloaded_file);
+                        let _ = tokio::fs::remove_file(&downloaded_file).await;
                         return Err(AppError::Download(format!(
                             "Downloaded file exceeds maximum size limit of {} bytes",
                             self.security_validator.get_max_file_size()

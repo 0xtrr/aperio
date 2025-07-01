@@ -7,8 +7,12 @@ A REST API service for downloading and processing videos from YouTube and Instag
 - Download videos from YouTube and Instagram
 - Process videos using FFmpeg for optimization
 - Store processed videos for later retrieval
-- Asynchronous job processing system
-- Docker-ready deployment
+- Asynchronous job processing system with priority support
+- Automated job retention and cleanup system
+- Production-ready metrics and monitoring (Prometheus compatible)
+- Comprehensive health checks and observability
+- Enhanced security with domain whitelisting and input validation
+- Docker-ready deployment with optimized performance settings
 
 ## Docker Deployment
 
@@ -118,6 +122,10 @@ cargo run --release
 | APERIO_CORS_ORIGINS | Allowed CORS origins (comma-separated) | Restrictive by default |
 | APERIO_MAX_FILE_SIZE_MB | Maximum file download size in MB | 500 |
 | APERIO_MAX_URL_LENGTH | Maximum URL length in characters | 2048 |
+| APERIO_RETENTION_ENABLED | Enable automatic job retention/cleanup | true |
+| APERIO_RETENTION_DAYS | Days to keep completed/failed jobs | 30 |
+| APERIO_CLEANUP_INTERVAL_HOURS | Hours between cleanup cycles | 24 |
+| APERIO_DB_MAX_CONNECTIONS | Database connection pool size | Auto (4x CPU cores, 10-100) |
 | RUST_LOG | Logging level and targets | aperio=info,actix_web=info |
 | APERIO_LOG_FORMAT | Log output format (json/pretty) | json |
 
@@ -131,7 +139,9 @@ Aperio includes comprehensive monitoring and observability features:
 - **`GET /health/detailed`** - Detailed health information with component status
 - **`GET /health/ready`** - Kubernetes readiness probe (database connectivity)
 - **`GET /health/live`** - Kubernetes liveness probe (service responsiveness)
-- **`GET /metrics`** - Application metrics and statistics
+- **`GET /metrics`** - Application metrics in JSON format
+- **`GET /metrics/prometheus`** - Prometheus-compatible metrics for monitoring systems
+- **`GET /metrics/history`** - Historical metrics data (last 50 points)
 
 ### Health Check Response Example
 ```json
@@ -159,22 +169,54 @@ Aperio includes comprehensive monitoring and observability features:
 ```
 
 ### Metrics Response Example
+
+**JSON Format (`/metrics`):**
 ```json
 {
-  "jobs": {
-    "total_jobs": 150,
-    "pending_jobs": 2,
-    "processing_jobs": 1,
-    "completed_jobs": 140,
-    "failed_jobs": 7,
-    "avg_processing_time_seconds": 45.2
+  "counters": {
+    "aperio_job_requests_total": {
+      "value": 150,
+      "labels": {}
+    },
+    "aperio_jobs_completed_total": {
+      "value": 142,
+      "labels": {}
+    },
+    "aperio_jobs_failed_total": {
+      "value": 8,
+      "labels": {"phase": "download"}
+    }
   },
-  "system": {
-    "uptime_seconds": 86400,
-    "working_dir_files": 3,
-    "storage_dir_size_mb": 1024.5
-  }
+  "gauges": {
+    "aperio_jobs_active": {
+      "value": 1.0,
+      "labels": {}
+    }
+  },
+  "histograms": {
+    "aperio_job_duration_ms": {
+      "buckets": [[1000.0, 45], [5000.0, 120], [10000.0, 150]],
+      "sum": 678540.0,
+      "count": 150,
+      "labels": {}
+    }
+  },
+  "timestamp": "2024-01-01T12:00:00Z"
 }
+```
+
+**Prometheus Format (`/metrics/prometheus`):**
+```
+# TYPE aperio_job_requests_total counter
+aperio_job_requests_total 150
+# TYPE aperio_jobs_active gauge
+aperio_jobs_active 1.0
+# TYPE aperio_job_duration_ms histogram
+aperio_job_duration_ms_bucket{le="1000"} 45
+aperio_job_duration_ms_bucket{le="5000"} 120
+aperio_job_duration_ms_bucket{le="+Inf"} 150
+aperio_job_duration_ms_sum 678540.0
+aperio_job_duration_ms_count 150
 ```
 
 ### Structured Logging
@@ -250,6 +292,37 @@ The default configuration is optimized for single-user deployments:
 - **2 total concurrent jobs** - Overall system limit
 
 For high-performance deployments, you can increase these limits via environment variables, but monitor CPU usage as FFmpeg can be very resource-intensive.
+
+## Job Retention & Cleanup
+
+Aperio includes an automated retention system to prevent storage bloat and maintain optimal performance:
+
+### Automatic Cleanup Features
+- **Database Cleanup**: Automatically removes old completed, failed, and cancelled jobs from the database
+- **File Cleanup**: Removes associated video files and temporary data for deleted jobs
+- **Configurable Retention**: Set how long to keep job records and files
+- **Background Processing**: Runs cleanup cycles automatically without blocking operations
+
+### Retention Configuration
+```bash
+# Enable/disable automatic cleanup (default: enabled)
+APERIO_RETENTION_ENABLED=true
+
+# Keep jobs for 30 days (default)
+APERIO_RETENTION_DAYS=30
+
+# Run cleanup every 24 hours (default)
+APERIO_CLEANUP_INTERVAL_HOURS=24
+```
+
+### Cleanup Behavior
+- **Jobs Cleaned**: Only `Completed`, `Failed`, and `Cancelled` jobs are eligible for cleanup
+- **Active Jobs Protected**: `Pending`, `Claimed`, `Downloading`, and `Processing` jobs are never cleaned up
+- **File Safety**: Cleanup includes race condition protection to avoid removing files being actively processed
+- **Logging**: All cleanup operations are logged with detailed statistics
+
+### Manual Cleanup
+While the system runs automatic cleanup, you can also trigger manual cleanup through the retention service API (if exposed) or by restarting the service with a lower retention period temporarily.
 
 ## License
 
