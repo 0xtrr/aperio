@@ -1,0 +1,559 @@
+{
+	"info": {
+		"_postman_id": "12345678-1234-1234-1234-123456789abc",
+		"name": "Aperio Video Processing API",
+		"description": "Complete API collection for Aperio Video Processing service. This API allows you to download videos from URLs, process them, and retrieve the processed files.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "12345678"
+	},
+	"item": [
+		{
+			"name": "Video Processing",
+			"item": [
+				{
+					"name": "Start Video Processing Job",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"url\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\",\n  \"priority\": \"normal\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/process",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"process"
+							]
+						},
+						"description": "Start a new video processing job. The API will download the video from the provided URL and process it.\n\nPriority options:\n- `high`: High priority processing\n- `normal`: Normal priority (default)\n- `low`: Low priority processing"
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"url\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\",\n  \"priority\": \"normal\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/process",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"process"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"id\": \"12345678-1234-1234-1234-123456789abc\",\n  \"status\": \"Pending\",\n  \"url\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\",\n  \"created_at\": \"2025-06-30T18:00:00Z\",\n  \"updated_at\": \"2025-06-30T18:00:00Z\",\n  \"error_message\": null,\n  \"processing_time\": null\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Job Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/status/{{job_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"status",
+								"{{job_id}}"
+							]
+						},
+						"description": "Get the status of a specific job by its ID.\n\nPossible status values:\n- `Pending`: Job is queued for processing\n- `Downloading`: Video is being downloaded\n- `Processing`: Video is being processed\n- `Completed`: Job completed successfully\n- `Failed`: Job failed with an error\n- `Cancelled`: Job was cancelled by user"
+					},
+					"response": [
+						{
+							"name": "Job Status - Completed",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/status/12345678-1234-1234-1234-123456789abc",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"status",
+										"12345678-1234-1234-1234-123456789abc"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"id\": \"12345678-1234-1234-1234-123456789abc\",\n  \"status\": \"Completed\",\n  \"url\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\",\n  \"created_at\": \"2025-06-30T18:00:00Z\",\n  \"updated_at\": \"2025-06-30T18:05:00Z\",\n  \"error_message\": null,\n  \"processing_time\": \"5m30s\"\n}"
+						},
+						{
+							"name": "Job Status - Failed",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/status/12345678-1234-1234-1234-123456789abc",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"status",
+										"12345678-1234-1234-1234-123456789abc"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"id\": \"12345678-1234-1234-1234-123456789abc\",\n  \"status\": \"Failed\",\n  \"url\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\",\n  \"created_at\": \"2025-06-30T18:00:00Z\",\n  \"updated_at\": \"2025-06-30T18:02:00Z\",\n  \"error_message\": \"Failed to download video: URL not accessible\",\n  \"processing_time\": null\n}"
+						}
+					]
+				},
+				{
+					"name": "Download Processed Video",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/video/{{job_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"video",
+								"{{job_id}}"
+							]
+						},
+						"description": "Download the processed video file for a completed job. The video will be streamed as a file download with appropriate headers.\n\nNote: This endpoint only works for jobs with status 'Completed'."
+					},
+					"response": [
+						{
+							"name": "Video Download Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/video/12345678-1234-1234-1234-123456789abc",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"video",
+										"12345678-1234-1234-1234-123456789abc"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "text",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "video/mp4"
+								},
+								{
+									"key": "Content-Disposition",
+									"value": "attachment; filename=\"video_12345678-1234-1234-1234-123456789abc.mp4\""
+								}
+							],
+							"cookie": [],
+							"body": "[Binary video file content]"
+						}
+					]
+				},
+				{
+					"name": "Cancel Job",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/jobs/{{job_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"jobs",
+								"{{job_id}}"
+							]
+						},
+						"description": "Cancel a job that is pending, downloading, or processing. Completed, failed, or already cancelled jobs cannot be cancelled.\n\nThis will also clean up any temporary files associated with the job."
+					},
+					"response": [
+						{
+							"name": "Job Cancelled Successfully",
+							"originalRequest": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/jobs/12345678-1234-1234-1234-123456789abc",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"jobs",
+										"12345678-1234-1234-1234-123456789abc"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"message\": \"Job cancelled successfully\",\n  \"job_id\": \"12345678-1234-1234-1234-123456789abc\"\n}"
+						}
+					]
+				},
+				{
+					"name": "List All Jobs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/jobs?page=0&page_size=20&status=completed",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"jobs"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0",
+									"description": "Page number (0-based)"
+								},
+								{
+									"key": "page_size",
+									"value": "20",
+									"description": "Number of jobs per page (max 100)"
+								},
+								{
+									"key": "status",
+									"value": "completed",
+									"description": "Filter by status: pending, downloading, processing, completed, failed, cancelled"
+								}
+							]
+						},
+						"description": "Get a paginated list of all jobs with optional status filtering.\n\nQuery parameters:\n- `page`: Page number (0-based, default: 0)\n- `page_size`: Items per page (1-100, default: 20)\n- `status`: Filter by job status (optional)"
+					},
+					"response": [
+						{
+							"name": "Jobs List Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/jobs?page=0&page_size=20",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"jobs"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "0"
+										},
+										{
+											"key": "page_size",
+											"value": "20"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"jobs\": [\n    {\n      \"id\": \"12345678-1234-1234-1234-123456789abc\",\n      \"status\": \"Completed\",\n      \"url\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\",\n      \"created_at\": \"2025-06-30T18:00:00Z\",\n      \"updated_at\": \"2025-06-30T18:05:00Z\",\n      \"error_message\": null,\n      \"processing_time\": \"5m30s\"\n    },\n    {\n      \"id\": \"87654321-4321-4321-4321-cba987654321\",\n      \"status\": \"Processing\",\n      \"url\": \"https://www.example.com/video.mp4\",\n      \"created_at\": \"2025-06-30T18:10:00Z\",\n      \"updated_at\": \"2025-06-30T18:12:00Z\",\n      \"error_message\": null,\n      \"processing_time\": null\n    }\n  ],\n  \"pagination\": {\n    \"current_page\": 0,\n    \"page_size\": 20,\n    \"total_pages\": 1,\n    \"total_jobs\": 2\n  }\n}"
+						}
+					]
+				}
+			],
+			"description": "Main video processing endpoints for downloading, processing, and managing video jobs."
+		},
+		{
+			"name": "Health & Monitoring",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Basic health check endpoint. Returns the overall health status of the service."
+					},
+					"response": [
+						{
+							"name": "Healthy",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/health",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"health"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"status\": \"healthy\",\n  \"timestamp\": 1719688800,\n  \"checks\": {\n    \"database\": {\n      \"status\": \"healthy\"\n    }\n  }\n}"
+						}
+					]
+				},
+				{
+					"name": "Detailed Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health/detailed",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"health",
+								"detailed"
+							]
+						},
+						"description": "Detailed health check with more comprehensive system information and component statuses."
+					},
+					"response": []
+				},
+				{
+					"name": "Readiness Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health/ready",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"health",
+								"ready"
+							]
+						},
+						"description": "Kubernetes-style readiness probe. Returns 200 if the service is ready to accept requests."
+					},
+					"response": [
+						{
+							"name": "Ready",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/health/ready",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"health",
+										"ready"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"status\": \"ready\",\n  \"timestamp\": 1719688800\n}"
+						}
+					]
+				},
+				{
+					"name": "Liveness Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health/live",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"health",
+								"live"
+							]
+						},
+						"description": "Kubernetes-style liveness probe. Returns 200 if the service is alive and responding."
+					},
+					"response": [
+						{
+							"name": "Alive",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/health/live",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"health",
+										"live"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"status\": \"alive\",\n  \"timestamp\": 1719688800\n}"
+						}
+					]
+				},
+				{
+					"name": "Metrics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/metrics",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"metrics"
+							]
+						},
+						"description": "Get system metrics and performance data."
+					},
+					"response": []
+				}
+			],
+			"description": "Health check and monitoring endpoints for system status and metrics."
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string",
+			"description": "Base URL for the Aperio API"
+		},
+		{
+			"key": "job_id",
+			"value": "12345678-1234-1234-1234-123456789abc",
+			"type": "string",
+			"description": "Example job ID for testing"
+		}
+	]
+}

@@ -1,0 +1,21 @@
+services:
+  aperio:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aperio
+    ports:
+      - "8080:8080"
+    volumes:
+      - aperio-storage:/app/storage:Z
+    user: "1000:1000"
+    restart: unless-stopped
+    environment:
+      - RUST_LOG=debug
+      - APERIO_HOST=0.0.0.0
+      - APERIO_PORT=8080
+      - APERIO_DATABASE_URL=sqlite:///app/storage/aperio.db
+
+volumes:
+  aperio-storage:
+  # Persistent volume for processed videos and database
