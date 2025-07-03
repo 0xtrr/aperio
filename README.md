@@ -37,15 +37,54 @@ environment:
   - APERIO_HOST=0.0.0.0
   - APERIO_PORT=8080
   - APERIO_ALLOWED_DOMAINS=youtube.com,youtu.be,instagram.com,vimeo.com
+  - APERIO_AUTH_PASSWORD=your-secure-password  # Optional: Enable authentication
   # Add other configuration as needed
 ```
+
+## Authentication
+
+Aperio supports optional HTTP Basic Authentication. When enabled, all endpoints (including health checks and metrics) require authentication.
+
+### Enable Authentication
+
+Set the `APERIO_AUTH_PASSWORD` environment variable:
+
+```bash
+# Docker Compose
+environment:
+  - APERIO_AUTH_PASSWORD=your-secure-password
+
+# Or export for local development
+export APERIO_AUTH_PASSWORD=your-secure-password
+```
+
+### Using Authentication
+
+Include the password in the Authorization header using HTTP Basic Auth format:
+
+```bash
+# Using curl with authentication
+curl -H "Authorization: Basic $(echo -n 'your-secure-password' | base64)" \
+  http://localhost:8080/health
+
+# Or use curl's built-in basic auth (empty username)
+curl -u ":your-secure-password" http://localhost:8080/health
+```
+
+**Note**: When authentication is disabled (no password set), all endpoints are publicly accessible.
 
 ## API Endpoints
 
 ### Start a new video processing job
 
 ```bash
+# Without authentication
 curl -X POST http://localhost:8080/process \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"}'
+
+# With authentication
+curl -u ":your-password" -X POST http://localhost:8080/process \
   -H "Content-Type: application/json" \
   -d '{"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"}'
 ```
@@ -128,6 +167,7 @@ cargo run --release
 | APERIO_DB_MAX_CONNECTIONS | Database connection pool size | Auto (4x CPU cores, 10-100) |
 | RUST_LOG | Logging level and targets | aperio=info,actix_web=info |
 | APERIO_LOG_FORMAT | Log output format (json/pretty) | json |
+| APERIO_AUTH_PASSWORD | Password for HTTP Basic Auth (optional) | None (auth disabled) |
 
 ## Monitoring & Health Checks
 

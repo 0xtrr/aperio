@@ -132,23 +132,13 @@ where
 
 // Simple metrics collector
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
-use std::sync::RwLock;
 
 pub struct RequestMetrics {
     total_requests: AtomicUsize,
     error_requests: AtomicUsize,
     total_duration_ms: AtomicU64,
-    recent_requests: RwLock<Vec<RequestData>>,
 }
 
-#[derive(Clone)]
-struct RequestData {
-    timestamp: std::time::SystemTime,
-    #[allow(dead_code)]
-    duration_ms: f64,
-    #[allow(dead_code)]
-    is_error: bool,
-}
 
 impl RequestMetrics {
     const fn new() -> Self {
@@ -156,7 +146,6 @@ impl RequestMetrics {
             total_requests: AtomicUsize::new(0),
             error_requests: AtomicUsize::new(0),
             total_duration_ms: AtomicU64::new(0),
-            recent_requests: RwLock::new(Vec::new()),
         }
     }
 
@@ -168,60 +157,9 @@ impl RequestMetrics {
             self.error_requests.fetch_add(1, Ordering::Relaxed);
         }
 
-        // Keep recent requests for rate calculation (last 1000)
-        if let Ok(mut recent) = self.recent_requests.write() {
-            recent.push(RequestData {
-                timestamp: std::time::SystemTime::now(),
-                duration_ms,
-                is_error,
-            });
-
-            // Keep only last 1000 requests
-            if recent.len() > 1000 {
-                let excess = recent.len() - 1000;
-                recent.drain(0..excess);
-            }
-        }
     }
 
-    pub fn get_stats(&self) -> (f64, f64, f64) {
-        let total = self.total_requests.load(Ordering::Relaxed);
-        let errors = self.error_requests.load(Ordering::Relaxed);
-        let total_duration = self.total_duration_ms.load(Ordering::Relaxed);
-
-        let error_rate = if total > 0 {
-            (errors as f64 / total as f64) * 100.0
-        } else {
-            0.0
-        };
-
-        let avg_response_time = if total > 0 {
-            total_duration as f64 / total as f64
-        } else {
-            0.0
-        };
-
-        // Calculate requests per minute from recent data
-        let requests_per_minute = if let Ok(recent) = self.recent_requests.read() {
-            let now = std::time::SystemTime::now();
-            let one_minute_ago = now - std::time::Duration::from_secs(60);
-
-            let recent_count = recent
-                .iter()
-                .filter(|req| req.timestamp > one_minute_ago)
-                .count();
-
-            recent_count as f64
-        } else {
-            0.0
-        };
-
-        (requests_per_minute, avg_response_time, error_rate)
-    }
 }
 
 static REQUEST_METRICS: RequestMetrics = RequestMetrics::new();
 
-pub fn get_request_metrics() -> (f64, f64, f64) {
-    REQUEST_METRICS.get_stats()
-}

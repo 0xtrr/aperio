@@ -12,7 +12,7 @@ use crate::api::monitoring::{configure_monitoring_routes, MonitoringState};
 use crate::config::load_config;
 use crate::services::{ProcessService, DownloadService, JobRepository, CleanupService, SecurityValidator, ConnectionPoolManager, JobQueue, RetentionService};
 use crate::database::{create_database_pool, run_migrations};
-use crate::middleware::{SecurityHeaders, Cors, RequestTracking};
+use crate::middleware::{SecurityHeaders, Cors, RequestTracking, AuthMiddleware};
 use crate::monitoring::HealthChecker;
 use actix_web::{web, App, HttpServer};
 use std::path::PathBuf;
@@ -82,9 +82,7 @@ async fn main() -> std::io::Result<()> {
     // Initialize monitoring
     let health_checker = HealthChecker::new(
         pool.clone(),
-        job_repository.clone(),
         working_dir.clone(),
-        storage_dir.clone(),
     );
 
     let app_state = Arc::new(AppState {
@@ -170,6 +168,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(TracingLogger::default()) // Add request tracing
             .wrap(SecurityHeaders) // Add security headers to all responses
             .wrap(cors_config.clone()) // Add CORS support
+            .wrap(AuthMiddleware::new(config.clone())) // Add authentication middleware
             .app_data(web::Data::new(app_state.clone()))
             .app_data(web::Data::new(monitoring_state.clone()))
             .app_data(web::PayloadConfig::new(server_config.max_payload_size))

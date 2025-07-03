@@ -1,7 +1,6 @@
 use crate::error::{AppError, AppResult};
 use crate::models::job::{Job, JobStatus};
 use sqlx::{SqlitePool, Row};
-use std::collections::HashMap;
 
 #[derive(Clone)]
 pub struct JobRepository {
@@ -162,28 +161,6 @@ impl JobRepository {
         }
 
         Ok(success)
-    }
-
-    pub async fn get_job_stats(&self) -> AppResult<HashMap<String, i64>> {
-        let rows = sqlx::query(
-            r#"
-            SELECT status, COUNT(*) as count
-            FROM jobs
-            GROUP BY status
-            "#
-        )
-        .fetch_all(&self.pool)
-        .await
-        .map_err(|e| AppError::Internal(format!("Failed to get job stats: {e}")))?;
-
-        let mut stats = HashMap::new();
-        for row in rows {
-            let status: String = row.get("status");
-            let count: i64 = row.get("count");
-            stats.insert(status, count);
-        }
-
-        Ok(stats)
     }
 
     #[allow(dead_code)]

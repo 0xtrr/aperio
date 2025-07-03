@@ -108,10 +108,4 @@ impl RetentionService {
 
         Ok(())
     }
-
-    /// Run immediate cleanup (for manual triggering)
-    pub async fn cleanup_now(&self) -> AppResult<()> {
-        info!("Running immediate retention cleanup");
-        self.run_cleanup().await
-    }
 }

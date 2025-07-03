@@ -65,6 +65,7 @@ pub struct SecurityConfig {
     pub max_url_length: usize,
     #[allow(dead_code)]
     pub blocked_ips: Vec<String>,
+    pub auth_password: Option<String>,
 }
 
 #[derive(Clone)]
@@ -131,6 +132,7 @@ impl Default for Config {
                     "localhost".to_string(),
                     "0.0.0.0".to_string(),
                 ],
+                auth_password: std::env::var("APERIO_AUTH_PASSWORD").ok(),
             },
             queue: QueueConfig {
                 max_concurrent_jobs: parse_env_number("APERIO_MAX_CONCURRENT_JOBS", 2) as usize,

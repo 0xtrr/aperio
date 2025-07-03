@@ -1,6 +1,8 @@
 pub mod request_tracking;
+pub mod auth;
 
-pub use request_tracking::{RequestTracking, get_request_metrics};
+pub use request_tracking::RequestTracking;
+pub use auth::AuthMiddleware;
 
 use actix_web::{
     http::header::{HeaderValue, CONTENT_SECURITY_POLICY, X_FRAME_OPTIONS, X_CONTENT_TYPE_OPTIONS, X_XSS_PROTECTION, STRICT_TRANSPORT_SECURITY},
