@@ -2,9 +2,24 @@
 	"info": {
 		"_postman_id": "12345678-1234-1234-1234-123456789abc",
 		"name": "Aperio Video Processing API",
-		"description": "Complete API collection for Aperio Video Processing service. This API allows you to download videos from URLs, process them, and retrieve the processed files.",
+		"description": "Complete API collection for Aperio Video Processing service with authentication support. This API allows you to download videos from URLs, process them, and retrieve the processed files.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "12345678"
+	},
+	"auth": {
+		"type": "basic",
+		"basic": [
+			{
+				"key": "password",
+				"value": "{{aperio_auth_password}}",
+				"type": "string"
+			},
+			{
+				"key": "username",
+				"value": "",
+				"type": "string"
+			}
+		]
 	},
 	"item": [
 		{
@@ -30,9 +45,9 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/process",
+							"raw": "{{aperio_host}}/process",
 							"host": [
-								"{{base_url}}"
+								"{{aperio_host}}"
 							],
 							"path": [
 								"process"
@@ -61,17 +76,17 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/process",
+									"raw": "{{aperio_host}}/process",
 									"host": [
-										"{{base_url}}"
+										"{{aperio_host}}"
 									],
 									"path": [
 										"process"
 									]
 								}
 							},
-							"status": "OK",
-							"code": 200,
+							"status": "Accepted",
+							"code": 202,
 							"_postman_previewlanguage": "json",
 							"header": [
 								{
@@ -80,7 +95,7 @@
 								}
 							],
 							"cookie": [],
-							"body": "{\n  \"id\": \"12345678-1234-1234-1234-123456789abc\",\n  \"status\": \"Pending\",\n  \"url\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\",\n  \"created_at\": \"2025-06-30T18:00:00Z\",\n  \"updated_at\": \"2025-06-30T18:00:00Z\",\n  \"error_message\": null,\n  \"processing_time\": null\n}"
+							"body": "{\n  \"job_id\": \"12345678-1234-1234-1234-123456789abc\",\n  \"status\": \"Pending\",\n  \"url\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\",\n  \"created_at\": \"2025-06-30T18:00:00Z\",\n  \"updated_at\": \"2025-06-30T18:00:00Z\",\n  \"error_message\": null,\n  \"processing_time\": null\n}"
 						}
 					]
 				},
@@ -90,9 +105,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/status/{{job_id}}",
+							"raw": "{{aperio_host}}/status/{{job_id}}",
 							"host": [
-								"{{base_url}}"
+								"{{aperio_host}}"
 							],
 							"path": [
 								"status",
@@ -108,9 +123,9 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/status/12345678-1234-1234-1234-123456789abc",
+									"raw": "{{aperio_host}}/status/12345678-1234-1234-1234-123456789abc",
 									"host": [
-										"{{base_url}}"
+										"{{aperio_host}}"
 									],
 									"path": [
 										"status",
@@ -136,9 +151,9 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/status/12345678-1234-1234-1234-123456789abc",
+									"raw": "{{aperio_host}}/status/12345678-1234-1234-1234-123456789abc",
 									"host": [
-										"{{base_url}}"
+										"{{aperio_host}}"
 									],
 									"path": [
 										"status",
@@ -166,9 +181,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/video/{{job_id}}",
+							"raw": "{{aperio_host}}/video/{{job_id}}",
 							"host": [
-								"{{base_url}}"
+								"{{aperio_host}}"
 							],
 							"path": [
 								"video",
@@ -184,9 +199,9 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/video/12345678-1234-1234-1234-123456789abc",
+									"raw": "{{aperio_host}}/video/12345678-1234-1234-1234-123456789abc",
 									"host": [
-										"{{base_url}}"
+										"{{aperio_host}}"
 									],
 									"path": [
 										"video",
@@ -213,14 +228,66 @@
 					]
 				},
 				{
+					"name": "Stream Video Inline",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{aperio_host}}/stream/{{job_id}}",
+							"host": [
+								"{{aperio_host}}"
+							],
+							"path": [
+								"stream",
+								"{{job_id}}"
+							]
+						},
+						"description": "Stream the processed video inline (for browser playback) for a completed job.\n\nNote: This endpoint only works for jobs with status 'Completed'."
+					},
+					"response": [
+						{
+							"name": "Video Stream Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{aperio_host}}/stream/12345678-1234-1234-1234-123456789abc",
+									"host": [
+										"{{aperio_host}}"
+									],
+									"path": [
+										"stream",
+										"12345678-1234-1234-1234-123456789abc"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "text",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "video/mp4"
+								},
+								{
+									"key": "Content-Disposition",
+									"value": "inline; filename=\"video_12345678-1234-1234-1234-123456789abc.mp4\""
+								}
+							],
+							"cookie": [],
+							"body": "[Binary video file content]"
+						}
+					]
+				},
+				{
 					"name": "Cancel Job",
 					"request": {
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/jobs/{{job_id}}",
+							"raw": "{{aperio_host}}/jobs/{{job_id}}",
 							"host": [
-								"{{base_url}}"
+								"{{aperio_host}}"
 							],
 							"path": [
 								"jobs",
@@ -236,9 +303,9 @@
 								"method": "DELETE",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/jobs/12345678-1234-1234-1234-123456789abc",
+									"raw": "{{aperio_host}}/jobs/12345678-1234-1234-1234-123456789abc",
 									"host": [
-										"{{base_url}}"
+										"{{aperio_host}}"
 									],
 									"path": [
 										"jobs",
@@ -266,9 +333,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/jobs?page=0&page_size=20&status=completed",
+							"raw": "{{aperio_host}}/jobs?page=0&page_size=20&status=completed",
 							"host": [
-								"{{base_url}}"
+								"{{aperio_host}}"
 							],
 							"path": [
 								"jobs"
@@ -300,9 +367,9 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/jobs?page=0&page_size=20",
+									"raw": "{{aperio_host}}/jobs?page=0&page_size=20",
 									"host": [
-										"{{base_url}}"
+										"{{aperio_host}}"
 									],
 									"path": [
 										"jobs"
@@ -345,9 +412,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/health",
+							"raw": "{{aperio_host}}/health",
 							"host": [
-								"{{base_url}}"
+								"{{aperio_host}}"
 							],
 							"path": [
 								"health"
@@ -362,9 +429,9 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/health",
+									"raw": "{{aperio_host}}/health",
 									"host": [
-										"{{base_url}}"
+										"{{aperio_host}}"
 									],
 									"path": [
 										"health"
@@ -381,7 +448,7 @@
 								}
 							],
 							"cookie": [],
-							"body": "{\n  \"status\": \"healthy\",\n  \"timestamp\": 1719688800,\n  \"checks\": {\n    \"database\": {\n      \"status\": \"healthy\"\n    }\n  }\n}"
+							"body": "{\n  \"status\": \"healthy\",\n  \"timestamp\": 1719688800,\n  \"version\": \"0.1.0\",\n  \"uptime_seconds\": 3600,\n  \"checks\": {\n    \"database\": {\n      \"status\": \"healthy\",\n      \"message\": \"Database connection successful\",\n      \"response_time_ms\": 5\n    },\n    \"disk_space\": {\n      \"status\": \"healthy\",\n      \"message\": \"Working directory accessible\"\n    },\n    \"dependencies\": {\n      \"status\": \"healthy\",\n      \"message\": \"All dependencies available\"\n    }\n  }\n}"
 						}
 					]
 				},
@@ -391,9 +458,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/health/detailed",
+							"raw": "{{aperio_host}}/health/detailed",
 							"host": [
-								"{{base_url}}"
+								"{{aperio_host}}"
 							],
 							"path": [
 								"health",
@@ -402,7 +469,36 @@
 						},
 						"description": "Detailed health check with more comprehensive system information and component statuses."
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Detailed Health Response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{aperio_host}}/health/detailed",
+									"host": [
+										"{{aperio_host}}"
+									],
+									"path": [
+										"health",
+										"detailed"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"status\": \"healthy\",\n  \"timestamp\": 1719688800,\n  \"version\": \"0.1.0\",\n  \"uptime_seconds\": 3600,\n  \"checks\": {\n    \"database\": {\n      \"status\": \"healthy\",\n      \"message\": \"Database connection successful\",\n      \"response_time_ms\": 5\n    },\n    \"disk_space\": {\n      \"status\": \"healthy\",\n      \"message\": \"Working directory accessible\"\n    },\n    \"dependencies\": {\n      \"status\": \"healthy\",\n      \"message\": \"All dependencies available\"\n    }\n  }\n}"
+						}
+					]
 				},
 				{
 					"name": "Readiness Check",
@@ -410,9 +506,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/health/ready",
+							"raw": "{{aperio_host}}/health/ready",
 							"host": [
-								"{{base_url}}"
+								"{{aperio_host}}"
 							],
 							"path": [
 								"health",
@@ -428,9 +524,9 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/health/ready",
+									"raw": "{{aperio_host}}/health/ready",
 									"host": [
-										"{{base_url}}"
+										"{{aperio_host}}"
 									],
 									"path": [
 										"health",
@@ -458,9 +554,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/health/live",
+							"raw": "{{aperio_host}}/health/live",
 							"host": [
-								"{{base_url}}"
+								"{{aperio_host}}"
 							],
 							"path": [
 								"health",
@@ -476,9 +572,9 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/health/live",
+									"raw": "{{aperio_host}}/health/live",
 									"host": [
-										"{{base_url}}"
+										"{{aperio_host}}"
 									],
 									"path": [
 										"health",
@@ -501,22 +597,146 @@
 					]
 				},
 				{
-					"name": "Metrics",
+					"name": "Metrics (JSON)",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/metrics",
+							"raw": "{{aperio_host}}/metrics",
 							"host": [
-								"{{base_url}}"
+								"{{aperio_host}}"
 							],
 							"path": [
 								"metrics"
 							]
 						},
-						"description": "Get system metrics and performance data."
+						"description": "Get application metrics in JSON format for monitoring and observability."
 					},
-					"response": []
+					"response": [
+						{
+							"name": "JSON Metrics Response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{aperio_host}}/metrics",
+									"host": [
+										"{{aperio_host}}"
+									],
+									"path": [
+										"metrics"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"counters\": {},\n  \"gauges\": {},\n  \"histograms\": {},\n  \"timestamp\": \"2025-07-03T20:01:23.404495Z\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Prometheus Metrics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{aperio_host}}/metrics/prometheus",
+							"host": [
+								"{{aperio_host}}"
+							],
+							"path": [
+								"metrics",
+								"prometheus"
+							]
+						},
+						"description": "Get metrics in Prometheus format for scraping by monitoring systems."
+					},
+					"response": [
+						{
+							"name": "Prometheus Metrics Response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{aperio_host}}/metrics/prometheus",
+									"host": [
+										"{{aperio_host}}"
+									],
+									"path": [
+										"metrics",
+										"prometheus"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "text",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "text/plain; charset=utf-8"
+								}
+							],
+							"cookie": [],
+							"body": "# TYPE aperio_job_requests_total counter\naperion_job_requests_total 0\n# TYPE aperio_jobs_active gauge\naperion_jobs_active 0"
+						}
+					]
+				},
+				{
+					"name": "Metrics History",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{aperio_host}}/metrics/history",
+							"host": [
+								"{{aperio_host}}"
+							],
+							"path": [
+								"metrics",
+								"history"
+							]
+						},
+						"description": "Get historical metrics data for trend analysis."
+					},
+					"response": [
+						{
+							"name": "Metrics History Response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{aperio_host}}/metrics/history",
+									"host": [
+										"{{aperio_host}}"
+									],
+									"path": [
+										"metrics",
+										"history"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"history\": [\n    {\n      \"timestamp\": \"2025-07-03T20:00:00Z\",\n      \"counters\": {},\n      \"gauges\": {},\n      \"histograms\": {}\n    }\n  ]\n}"
+						}
+					]
 				}
 			],
 			"description": "Health check and monitoring endpoints for system status and metrics."
@@ -544,10 +764,10 @@
 	],
 	"variable": [
 		{
-			"key": "base_url",
+			"key": "aperio_host",
 			"value": "http://localhost:8080",
 			"type": "string",
-			"description": "Base URL for the Aperio API"
+			"description": "Base URL for the Aperio API (configure in environment)"
 		},
 		{
 			"key": "job_id",
