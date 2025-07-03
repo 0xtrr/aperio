@@ -438,7 +438,6 @@ impl JobRepository {
         .bind(JobStatus::Claimed.to_string())
         .bind(job_id)
         .bind(JobStatus::Pending.to_string())
-        .bind(job_id)
         .execute(&self.pool)
         .await
         .map_err(|e| AppError::Internal(format!("Failed to claim job: {e}")))?;

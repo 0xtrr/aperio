@@ -134,14 +134,28 @@ impl JobQueue {
                 // Clean up completed jobs
                 {
                     let mut active = active_jobs.lock().await;
-                    active.retain(|job_id, handle| {
+                    let mut completed_handles = Vec::new();
+                    
+                    // Collect finished handles first, then remove them
+                    let mut to_remove = Vec::new();
+                    for (job_id, handle) in active.iter() {
                         if handle.is_finished() {
                             debug!("Job {} completed, removing from active jobs", job_id);
-                            false
-                        } else {
-                            true
+                            to_remove.push(job_id.clone());
                         }
-                    });
+                    }
+                    
+                    // Remove finished jobs and collect their handles
+                    for job_id in to_remove {
+                        if let Some(handle) = active.remove(&job_id) {
+                            completed_handles.push(handle);
+                        }
+                    }
+                    
+                    // Clean up finished task handles to prevent resource leaks
+                    for handle in completed_handles {
+                        let _ = handle.await;
+                    }
                 }
 
                 // Process as many jobs as we can until we hit the limit or run out of jobs

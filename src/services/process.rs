@@ -41,7 +41,8 @@ impl ProcessService {
             self.config.processing_timeout,
             Command::new(&self.config.ffmpeg_command)
                 .args([
-                    "-i", input_path.to_str().unwrap(),
+                    "-i", input_path.to_str().ok_or_else(|| 
+                        AppError::Processing("Invalid input path".to_string()))?,
                     "-c:v", &self.config.video_codec,
                     "-preset", &self.config.preset,
                     "-crf", &self.config.crf.to_string(),
@@ -55,7 +56,8 @@ impl ProcessService {
                     "-threads", "0", // Use all available cores since we limit concurrent processing
                     "-movflags", "+faststart",
                     "-max_muxing_queue_size", "1024",
-                    output_path.to_str().unwrap(),
+                    output_path.to_str().ok_or_else(|| 
+                        AppError::Processing("Invalid output path".to_string()))?,
 ])
                 .output(),
         ).await;
@@ -63,6 +65,10 @@ impl ProcessService {
         match process_result {
             Ok(Ok(output)) => {
                 if !output.status.success() {
+                    // Clean up partial output file on processing failure
+                    if output_path.exists() {
+                        let _ = tokio::fs::remove_file(&output_path).await;
+                    }
                     let error_message = String::from_utf8_lossy(&output.stderr).to_string();
                     return Err(AppError::Processing(error_message));
                 }
@@ -77,10 +83,16 @@ impl ProcessService {
                 Ok(output_path)
             }
             Ok(Err(error)) => Err(AppError::Processing(format!("FFmpeg command failed: {error}"))),
-            Err(_) => Err(AppError::Timeout(format!(
-                "Processing timed out after {} seconds",
-                self.config.processing_timeout.as_secs()
-            ))),
+            Err(_) => {
+                // Clean up partial output file on timeout
+                if output_path.exists() {
+                    let _ = tokio::fs::remove_file(&output_path).await;
+                }
+                Err(AppError::Timeout(format!(
+                    "Processing timed out after {} seconds",
+                    self.config.processing_timeout.as_secs()
+                )))
+            }
         }
     }
 }

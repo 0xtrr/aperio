@@ -74,6 +74,10 @@ impl DownloadService {
         match download_result {
             Ok(Ok(output)) => {
                 if !output.status.success() {
+                    // Clean up any partial files on download failure
+                    if let Some(partial_file) = self.find_downloaded_file(&job.id).await {
+                        let _ = tokio::fs::remove_file(&partial_file).await;
+                    }
                     let error_message = String::from_utf8_lossy(&output.stderr).to_string();
                     return Err(AppError::Download(error_message));
                 }
@@ -100,10 +104,16 @@ impl DownloadService {
                 Ok(downloaded_file)
             }
             Ok(Err(error)) => Err(AppError::Download(format!("Download command failed: {error}"))),
-            Err(_) => Err(AppError::Timeout(format!(
-                "Download timed out after {} seconds",
-                self.config.download_timeout.as_secs()
-            )))
+            Err(_) => {
+                // Clean up any partial files on timeout
+                if let Some(partial_file) = self.find_downloaded_file(&job.id).await {
+                    let _ = tokio::fs::remove_file(&partial_file).await;
+                }
+                Err(AppError::Timeout(format!(
+                    "Download timed out after {} seconds",
+                    self.config.download_timeout.as_secs()
+                )))
+            }
         }
     }
     
